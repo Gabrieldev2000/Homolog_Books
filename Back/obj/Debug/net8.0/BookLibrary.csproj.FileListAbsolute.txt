@@ -280,3 +280,4 @@ C:\Users\elbri\OneDrive\Documentos\proejtos\BookLibrary\Back\obj\Debug\net8.0\re
 C:\Users\elbri\OneDrive\Documentos\proejtos\BookLibrary\Back\obj\Debug\net8.0\BookLibrary.pdb
 C:\Users\elbri\OneDrive\Documentos\proejtos\BookLibrary\Back\obj\Debug\net8.0\BookLibrary.genruntimeconfig.cache
 C:\Users\elbri\OneDrive\Documentos\proejtos\BookLibrary\Back\obj\Debug\net8.0\ref\BookLibrary.dll
+C:\Users\elbri\OneDrive\Documentos\proejtos\BookLibrary\Back\obj\Debug\net8.0\BookLibrary.sourcelink.json

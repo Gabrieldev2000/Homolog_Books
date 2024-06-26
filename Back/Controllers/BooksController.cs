@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
@@ -7,7 +6,6 @@ using System.Net.Http;
 
 [Route("api/[controller]")]
 [ApiController]
-[Authorize]
 public class BooksController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -28,15 +26,21 @@ public class BooksController : ControllerBase
     }
 
     [HttpPost("add")]
-    public async Task<IActionResult> AddBook([FromBody] Book book)
+    public async Task<IActionResult> AddBook([FromBody] AddBookRequest request)
     {
-        var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "sub");
-        if (userIdClaim == null)
+        if (!ModelState.IsValid)
         {
-            return Unauthorized("Reivindicação de ID de usuário não encontrada.");
+            return BadRequest(ModelState);
         }
 
-        book.UserId = userIdClaim.Value;
+        var book = new Book
+        {
+            Title = request.Title,
+            Author = request.Author,
+            GoogleBooksId = request.GoogleBooksId,
+            UserId = request.UserId
+        };
+
         _context.Books.Add(book);
         await _context.SaveChangesAsync();
         return Ok(book);
@@ -45,21 +49,10 @@ public class BooksController : ControllerBase
     [HttpDelete("remove/{id}")]
     public async Task<IActionResult> RemoveBook(int id)
     {
-        var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "sub");
-        if (userIdClaim == null)
-        {
-            return Unauthorized("Reivindicação de ID de usuário não encontrada.");
-        }
-
         var book = await _context.Books.FindAsync(id);
         if (book == null)
         {
-            return NotFound("Livro não encontrado.");
-        }
-
-        if (book.UserId != userIdClaim.Value)
-        {
-            return Forbid("Você não está autorizado a excluir este livro.");
+            return NotFound();
         }
 
         _context.Books.Remove(book);
@@ -68,20 +61,44 @@ public class BooksController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetBooks()
+    public async Task<IActionResult> GetBooks(string id = null, string userName = null, string email = null)
     {
-        var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "sub");
-        if (userIdClaim == null)
+        IQueryable<Book> query = _context.Books;
+
+        if (!string.IsNullOrEmpty(id))
         {
-            return Unauthorized("Reivindicação de ID de usuário não encontrada.");
+            query = query.Where(b => b.UserId == id);
+        }
+        else if (!string.IsNullOrEmpty(userName))
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == userName);
+            if (user != null)
+            {
+                query = query.Where(b => b.UserId == user.Id);
+            }
+        }
+        else if (!string.IsNullOrEmpty(email))
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+            if (user != null)
+            {
+                query = query.Where(b => b.UserId == user.Id);
+            }
         }
 
-        var userId = userIdClaim.Value;
-        var books = await _context.Books.Where(b => b.UserId == userId).ToListAsync();
+        var books = await query.ToListAsync();
         if (!books.Any())
         {
             return NotFound("Nenhum livro encontrado para o usuário.");
         }
         return Ok(books);
     }
+}
+
+public class AddBookRequest
+{
+    public string Title { get; set; }
+    public string Author { get; set; }
+    public string GoogleBooksId { get; set; }
+    public string UserId { get; set; }
 }
